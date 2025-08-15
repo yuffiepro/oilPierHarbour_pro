@@ -7,9 +7,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * 油墩港数字管理平台启动类
+ * Oil Pier Harbour Digital Management Platform Main Class
  * 
- * @author 油墩港平台团队
+ * @author Platform Team
  * @since 1.0.0
  */
 @SpringBootApplication
@@ -21,7 +21,7 @@ public class OilPierHarbourPlatformApplication {
     public static void main(String[] args) {
         SpringApplication.run(OilPierHarbourPlatformApplication.class, args);
         System.out.println("=================================");
-        System.out.println("油墩港数字管理平台启动成功！");
+        System.out.println("Oil Pier Harbour Platform Started Successfully!");
         System.out.println("=================================");
     }
 }

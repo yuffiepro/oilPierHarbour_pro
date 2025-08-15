@@ -147,3 +147,240 @@ INSERT INTO `tower_crane_monitor` (`crane_id`, `tilt_angle`, `stress`, `load_wei
 CREATE INDEX idx_bridge_monitoring_composite ON bridge_monitoring(point_id, status, create_time);
 CREATE INDEX idx_earthwork_flow_composite ON earthwork_flow(section_id, record_date, earthwork_type);
 CREATE INDEX idx_tower_crane_composite ON tower_crane_monitor(crane_id, alarm_status, update_time);
+
+-- ==========================================
+-- 系统与基础维表（用户、角色、权限、配置、设备、标段等）
+-- ==========================================
+
+-- 系统用户表
+CREATE TABLE IF NOT EXISTS `sys_user` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `username` varchar(50) NOT NULL COMMENT '用户名',
+  `password` varchar(100) NOT NULL COMMENT '密码(BCrypt)',
+  `nickname` varchar(50) DEFAULT NULL COMMENT '昵称',
+  `avatar` varchar(255) DEFAULT NULL COMMENT '头像URL',
+  `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
+  `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:禁用)',
+  `last_login_time` datetime DEFAULT NULL COMMENT '最后登录时间',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_username` (`username`),
+  KEY `idx_status` (`status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
+
+-- 角色表
+CREATE TABLE IF NOT EXISTS `sys_role` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `code` varchar(50) NOT NULL COMMENT '角色编码',
+  `name` varchar(50) NOT NULL COMMENT '角色名称',
+  `description` varchar(200) DEFAULT NULL COMMENT '描述',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:禁用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_role_code` (`code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色表';
+
+-- 权限表(接口/菜单/按钮)
+CREATE TABLE IF NOT EXISTS `sys_permission` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `code` varchar(100) NOT NULL COMMENT '权限编码',
+  `name` varchar(100) NOT NULL COMMENT '权限名称',
+  `type` tinyint(1) NOT NULL DEFAULT '1' COMMENT '类型(1:接口,2:菜单,3:按钮)',
+  `method` varchar(10) DEFAULT NULL COMMENT 'HTTP方法(GET/POST/...)',
+  `path` varchar(200) DEFAULT NULL COMMENT '接口路径或前端路由',
+  `parent_id` bigint(20) DEFAULT NULL COMMENT '父权限ID',
+  `sort` int(11) DEFAULT '0' COMMENT '排序',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:禁用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_perm_code` (`code`),
+  KEY `idx_parent_id` (`parent_id`),
+  KEY `idx_type_status` (`type`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限表';
+
+-- 用户-角色 关系表
+CREATE TABLE IF NOT EXISTS `sys_user_role` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `role_id` bigint(20) NOT NULL COMMENT '角色ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_role` (`user_id`, `role_id`),
+  KEY `idx_role_id` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户-角色 关系表';
+
+-- 角色-权限 关系表
+CREATE TABLE IF NOT EXISTS `sys_role_permission` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `role_id` bigint(20) NOT NULL COMMENT '角色ID',
+  `permission_id` bigint(20) NOT NULL COMMENT '权限ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_role_perm` (`role_id`, `permission_id`),
+  KEY `idx_permission_id` (`permission_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色-权限 关系表';
+
+-- 系统配置表(系统设置)
+CREATE TABLE IF NOT EXISTS `sys_config` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `config_key` varchar(100) NOT NULL COMMENT '配置键',
+  `config_value` text COMMENT '配置值',
+  `description` varchar(255) DEFAULT NULL COMMENT '描述',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:禁用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_config_key` (`config_key`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表';
+
+-- 设备维表：桥梁监测点
+CREATE TABLE IF NOT EXISTS `bridge_monitor_point` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `point_id` varchar(50) NOT NULL COMMENT '监测点ID(与业务表关联)',
+  `name` varchar(100) DEFAULT NULL COMMENT '监测点名称',
+  `location` varchar(200) DEFAULT NULL COMMENT '位置描述/坐标',
+  `elevation` decimal(8,2) DEFAULT NULL COMMENT '高程(m)',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:停用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_point_id` (`point_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='桥梁监测点维表';
+
+-- 设备维表：塔吊设备
+CREATE TABLE IF NOT EXISTS `tower_crane_device` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `crane_id` varchar(50) NOT NULL COMMENT '塔吊ID(与业务表关联)',
+  `name` varchar(100) DEFAULT NULL COMMENT '塔吊名称',
+  `model` varchar(100) DEFAULT NULL COMMENT '设备型号',
+  `installation_height` decimal(8,2) DEFAULT NULL COMMENT '安装高度(m)',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:停用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_crane_id` (`crane_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='塔吊设备维表';
+
+-- 设备维表：水质监测点
+CREATE TABLE IF NOT EXISTS `water_quality_point` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `monitor_point_id` varchar(50) NOT NULL COMMENT '监测点ID(与业务表关联)',
+  `name` varchar(100) DEFAULT NULL COMMENT '监测点名称',
+  `location` varchar(200) DEFAULT NULL COMMENT '位置描述/坐标',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:停用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_monitor_point_id` (`monitor_point_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='水质监测点维表';
+
+-- 能耗：表计维表
+CREATE TABLE IF NOT EXISTS `energy_meter` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `meter_id` varchar(50) NOT NULL COMMENT '表计ID(与业务表关联)',
+  `meter_type` tinyint(1) NOT NULL COMMENT '表计类型(1:电表,2:水表)',
+  `name` varchar(100) DEFAULT NULL COMMENT '表计名称',
+  `location` varchar(200) DEFAULT NULL COMMENT '安装位置',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:停用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_meter_id` (`meter_id`),
+  KEY `idx_type_status` (`meter_type`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='能耗表计维表';
+
+-- 无人机设备维表
+CREATE TABLE IF NOT EXISTS `drone_device` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `drone_id` varchar(50) NOT NULL COMMENT '无人机ID(与业务表关联)',
+  `name` varchar(100) DEFAULT NULL COMMENT '设备名称',
+  `model` varchar(100) DEFAULT NULL COMMENT '设备型号',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:停用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drone_id` (`drone_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='无人机设备维表';
+
+-- 无人机巡检路线维表
+CREATE TABLE IF NOT EXISTS `drone_route` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `route_code` varchar(50) NOT NULL COMMENT '路线编码',
+  `name` varchar(100) DEFAULT NULL COMMENT '路线名称',
+  `waypoints` text COMMENT '航点(JSON)',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:启用,0:停用)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_route_code` (`route_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='无人机巡检路线维表';
+
+-- 土方：标段维表
+CREATE TABLE IF NOT EXISTS `project_section` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `section_id` varchar(50) NOT NULL COMMENT '标段ID(与业务表关联)',
+  `name` varchar(100) DEFAULT NULL COMMENT '标段名称',
+  `contractor` varchar(100) DEFAULT NULL COMMENT '承包单位',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态(1:在建,0:停工/完工)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除标识',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_section_id` (`section_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目标段维表';
+
+-- ==========================================
+-- 初始化基础数据
+-- ==========================================
+
+-- 初始化系统角色
+INSERT INTO `sys_role` (`code`, `name`, `description`) VALUES
+('ROLE_ADMIN', '管理员', '系统管理员'),
+('ROLE_USER', '普通用户', '普通使用者')
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+
+-- 初始化系统用户(密码为123456, 与内存用户保持一致便于切换)
+INSERT INTO `sys_user` (`username`, `password`, `nickname`, `status`) VALUES
+('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDa', '管理员', 1),
+('user', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDa', '普通用户', 1)
+ON DUPLICATE KEY UPDATE `nickname`=VALUES(`nickname`);
+
+-- 绑定用户角色
+INSERT INTO `sys_user_role` (`user_id`, `role_id`)
+SELECT u.id, r.id FROM sys_user u, sys_role r 
+WHERE u.username='admin' AND r.code='ROLE_ADMIN'
+ON DUPLICATE KEY UPDATE `role_id`=VALUES(`role_id`);
+
+INSERT INTO `sys_user_role` (`user_id`, `role_id`)
+SELECT u.id, r.id FROM sys_user u, sys_role r 
+WHERE u.username='user' AND r.code='ROLE_USER'
+ON DUPLICATE KEY UPDATE `role_id`=VALUES(`role_id`);
+
+-- 示例系统配置
+INSERT INTO `sys_config` (`config_key`, `config_value`, `description`) VALUES
+('site.title', '油墩港数字管理平台', '系统站点标题'),
+('mqtt.enabled', 'false', '是否启用MQTT采集'),
+('alarm.bridge.threshold.verticalDispl', '10', '桥梁竖向位移预警阈值(mm)')
+ON DUPLICATE KEY UPDATE `config_value`=VALUES(`config_value`);

@@ -3,9 +3,7 @@ package com.oilpierharbour.platform.controller;
 import com.oilpierharbour.platform.common.Result;
 import com.oilpierharbour.platform.entity.BridgeMonitoring;
 import com.oilpierharbour.platform.service.BridgeMonitoringService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -22,15 +20,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/bridge/monitoring")
 @RequiredArgsConstructor
-@Api(tags = "桥梁监测管理")
+
 public class BridgeMonitoringController {
 
     private final BridgeMonitoringService bridgeMonitoringService;
 
     @GetMapping("/{pointId}")
-    @ApiOperation("根据监测点ID获取最新监测数据")
     public Result<BridgeMonitoring> getLatestMonitoringData(
-            @ApiParam("监测点ID") @PathVariable String pointId) {
+            @PathVariable String pointId) {
         try {
             BridgeMonitoring data = bridgeMonitoringService.getLatestMonitoringData(pointId);
             if (data != null) {
@@ -45,10 +42,9 @@ public class BridgeMonitoringController {
     }
 
     @GetMapping("/{pointId}/history")
-    @ApiOperation("根据监测点ID获取历史监测数据")
     public Result<List<BridgeMonitoring>> getHistoryMonitoringData(
-            @ApiParam("监测点ID") @PathVariable String pointId,
-            @ApiParam("限制条数") @RequestParam(defaultValue = "100") Integer limit) {
+            @PathVariable String pointId,
+            @RequestParam(defaultValue = "100") Integer limit) {
         try {
             List<BridgeMonitoring> dataList = bridgeMonitoringService.getHistoryMonitoringData(pointId, limit);
             return Result.success(dataList);
@@ -59,7 +55,6 @@ public class BridgeMonitoringController {
     }
 
     @GetMapping("/warning")
-    @ApiOperation("获取所有预警监测点")
     public Result<List<BridgeMonitoring>> getWarningPoints() {
         try {
             List<BridgeMonitoring> warningPoints = bridgeMonitoringService.getWarningPoints();
@@ -71,11 +66,10 @@ public class BridgeMonitoringController {
     }
 
     @GetMapping("/{pointId}/range")
-    @ApiOperation("根据时间范围查询监测数据")
     public Result<List<BridgeMonitoring>> getMonitoringDataByTimeRange(
-            @ApiParam("监测点ID") @PathVariable String pointId,
-            @ApiParam("开始时间") @RequestParam String startTime,
-            @ApiParam("结束时间") @RequestParam String endTime) {
+            @PathVariable String pointId,
+            @RequestParam String startTime,
+            @RequestParam String endTime) {
         try {
             List<BridgeMonitoring> dataList = bridgeMonitoringService.getMonitoringDataByTimeRange(pointId, startTime, endTime);
             return Result.success(dataList);
@@ -86,7 +80,6 @@ public class BridgeMonitoringController {
     }
 
     @PostMapping
-    @ApiOperation("保存监测数据")
     public Result<Boolean> saveMonitoringData(@RequestBody BridgeMonitoring monitoring) {
         try {
             boolean result = bridgeMonitoringService.saveMonitoringData(monitoring);
@@ -102,7 +95,6 @@ public class BridgeMonitoringController {
     }
 
     @PostMapping("/batch")
-    @ApiOperation("批量保存监测数据")
     public Result<Boolean> batchSaveMonitoringData(@RequestBody List<BridgeMonitoring> monitoringList) {
         try {
             boolean result = bridgeMonitoringService.batchSaveMonitoringData(monitoringList);
@@ -118,9 +110,8 @@ public class BridgeMonitoringController {
     }
 
     @PutMapping("/{id}")
-    @ApiOperation("更新监测数据")
     public Result<Boolean> updateMonitoringData(
-            @ApiParam("监测数据ID") @PathVariable Long id,
+            @PathVariable Long id,
             @RequestBody BridgeMonitoring monitoring) {
         try {
             monitoring.setId(id);
@@ -137,8 +128,7 @@ public class BridgeMonitoringController {
     }
 
     @DeleteMapping("/{id}")
-    @ApiOperation("删除监测数据")
-    public Result<Boolean> deleteMonitoringData(@ApiParam("监测数据ID") @PathVariable Long id) {
+    public Result<Boolean> deleteMonitoringData(@PathVariable Long id) {
         try {
             boolean result = bridgeMonitoringService.removeById(id);
             if (result) {

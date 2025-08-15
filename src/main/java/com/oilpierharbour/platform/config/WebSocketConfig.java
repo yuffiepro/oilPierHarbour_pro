@@ -26,14 +26,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // 配置消息代理
-        // 客户端订阅消息的前缀
+        // 设置消息代理的前缀
         registry.enableSimpleBroker("/topic", "/queue");
         
-        // 客户端发送消息的前缀
+        // 设置客户端发送消息的前缀
         registry.setApplicationDestinationPrefixes("/app");
         
-        // 用户点对点消息的前缀
+        // 设置用户点对点消息的前缀
         registry.setUserDestinationPrefix("/user");
     }
 }
