@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oilpierharbour.platform.mapper.BridgeMonitoringMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.oilpierharbour.platform.entity.BridgeMonitoring">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="point_id" property="pointId" jdbcType="VARCHAR"/>
+        <result column="vertical_displ" property="verticalDispl" jdbcType="DECIMAL"/>
+        <result column="lateral_displ" property="lateralDispl" jdbcType="DECIMAL"/>
+        <result column="temperature" property="temperature" jdbcType="DECIMAL"/>
+        <result column="wind_speed" property="windSpeed" jdbcType="DECIMAL"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="cable_force" property="cableForce" jdbcType="DECIMAL"/>
+        <result column="stress_value" property="stressValue" jdbcType="DECIMAL"/>
+        <result column="deviation" property="deviation" jdbcType="DECIMAL"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted" property="deleted" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, point_id, vertical_displ, lateral_displ, temperature, wind_speed, status,
+        cable_force, stress_value, deviation, create_time, update_time, deleted
+    </sql>
+
+    <!-- 根据监测点ID查询最新监测数据 -->
+    <select id="selectLatestByPointId" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM bridge_monitoring
+        WHERE point_id = #{pointId} AND deleted = 0
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 根据监测点ID查询历史监测数据 -->
+    <select id="selectHistoryByPointId" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM bridge_monitoring
+        WHERE point_id = #{pointId} AND deleted = 0
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询预警状态的监测点 -->
+    <select id="selectWarningPoints" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM bridge_monitoring
+        WHERE status = 1 AND deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据时间范围查询监测数据 -->
+    <select id="selectByTimeRange" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM bridge_monitoring
+        WHERE point_id = #{pointId} 
+          AND deleted = 0
+          AND create_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 插入监测数据 -->
+    <insert id="insert" parameterType="com.oilpierharbour.platform.entity.BridgeMonitoring" 
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO bridge_monitoring (
+            point_id, vertical_displ, lateral_displ, temperature, wind_speed, status,
+            cable_force, stress_value, deviation, create_time, update_time, deleted
+        ) VALUES (
+            #{pointId}, #{verticalDispl}, #{lateralDispl}, #{temperature}, #{windSpeed}, #{status},
+            #{cableForce}, #{stressValue}, #{deviation}, NOW(), NOW(), 0
+        )
+    </insert>
+
+    <!-- 更新监测数据 -->
+    <update id="updateById" parameterType="com.oilpierharbour.platform.entity.BridgeMonitoring">
+        UPDATE bridge_monitoring
+        SET point_id = #{pointId},
+            vertical_displ = #{verticalDispl},
+            lateral_displ = #{lateralDispl},
+            temperature = #{temperature},
+            wind_speed = #{windSpeed},
+            status = #{status},
+            cable_force = #{cableForce},
+            stress_value = #{stressValue},
+            deviation = #{deviation},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 逻辑删除 -->
+    <update id="deleteById">
+        UPDATE bridge_monitoring
+        SET deleted = 1, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>
